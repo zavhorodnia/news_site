@@ -1,0 +1,14 @@
+{% extends 'news/base.html' %}
+{% block title %}Add post{% endblock %}
+
+{% block content %}
+    <h1>Add a new post!</h1>
+    <form action="" method="POST">
+      {% csrf_token %}
+      {{ post_form.media }}
+      {{ post_form.title }}
+      <br><br>
+      {{ post_form.text }}
+    <input type="submit" value="Save">
+    </form>
+{% endblock %}

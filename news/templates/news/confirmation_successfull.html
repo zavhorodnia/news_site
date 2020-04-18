@@ -1,0 +1,10 @@
+{% extends 'news/base.html' %}
+
+{% block title %}Confirmation successful{% endblock %}
+
+{% block content %}
+    <div class="alert alert-success" role="alert">
+      Congratulations, you're in! Now you can check latest news!
+    </div>
+    <a href="{% url 'index' %}" role="button" class="btn btn-outline-primary" aria-pressed="true">Explore</a>
+{% endblock %}

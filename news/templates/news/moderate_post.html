@@ -1,0 +1,16 @@
+{%  extends 'news/navbar.html' %}
+
+{% block title %}Moderate post{% endblock %}
+
+{% load crispy_forms_tags %}
+{% block content %}
+    <form action="" method="POST">
+      {% csrf_token %}
+      {{ form.media }}
+      {{ form.title | as_crispy_field }}
+      <br><br>
+      {{ form.text }}
+      <br><br>
+      <button type="submit" class="btn btn-primary mb-2">Save</button>
+    </form>
+{% endblock %}

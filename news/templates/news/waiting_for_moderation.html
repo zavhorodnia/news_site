@@ -1,0 +1,22 @@
+{% extends 'news/navbar.html' %}
+
+{% block title %}Waiting for moderation{% endblock %}
+
+{% block content %}
+    {% for post in posts %}
+    <div class="row">
+      <div>
+        <br>
+          <h4>{{ post.title }}</h4>
+          <p>{{ post.text | safe | truncatechars:256 }}</p>
+          <a href="{% url 'moderate' post.id %}" class="btn btn-outline-primary">Moderate</a>
+          <a href="{% url 'publish' post.id %}" class="btn btn-outline-primary">Publish</a>
+      </div>
+      <hr>
+    </div>
+    {% empty %}
+        <div class="alert alert-info" role="alert">
+          No posts to moderate
+        </div>
+    {% endfor %}
+{% endblock %}

@@ -1,6 +1,6 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.contrib.auth import login, authenticate, logout as django_logout
+from django.contrib.auth import login as django_login, authenticate, logout as django_logout
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm, LoginForm
 from django.contrib.sites.shortcuts import get_current_site
@@ -10,22 +10,49 @@ from django.template.loader import render_to_string
 from .tokens import account_activation_token
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from .models import NewsPost
-from .forms import NewsPostForm
+from .models import NewsPost, Comment
+from .forms import NewsPostForm, CommentPostForm
 
 
 @login_required(login_url='/login/')
 def index(request):
     context = {
-        'posts': NewsPost.objects.all(), #filter(published=True),
-        'can_moderate': request.user.has_perm('post_without_moderation')
+        'posts': NewsPost.objects.filter(published=True).order_by('-id'),
+        'is_moderator': request.user.has_perm('post_without_moderation')
     }
     return render(request, 'news/index.html', context)
 
 
 @login_required(login_url='/login/')
+def waiting_for_moderation(request):
+    if not request.user.has_perm('post_without_moderation'):
+        return redirect('index')
+    context = {'posts': NewsPost.objects.filter(published=False).order_by('-id'),
+               'is_moderator': True}
+    return render(request, 'news/waiting_for_moderation.html', context)
+
+
+@login_required(login_url='/login/')
 def show_post(request, post_id):
-    context = {'post': get_object_or_404(NewsPost.objects.get(id=post_id))}
+    if request.method == 'POST':
+        form = CommentPostForm(request.POST)
+        post = NewsPost.objects.get(id=post_id)
+        if form.is_valid():
+            comment_item = form.save(commit=False)
+            comment_item.author = request.user
+            comment_item.post = post
+            comment_item.save()
+            notify_on_comment(get_current_site(request), post, request.user)
+    else:
+        try:
+            post = NewsPost.objects.get(id=post_id)
+        except NewsPost.DoesNotExist:
+            return redirect('index')
+    context = {
+        'post': post,
+        'is_moderator': request.user.has_perm('post_without_moderation'),
+        'comments': post.comments.all().order_by('-id'),
+        'form': CommentPostForm()}
     return render(request, 'news/post.html', context)
 
 
@@ -35,17 +62,19 @@ def add_post(request):
         form = NewsPostForm(request.POST)
         context = {
             'post_form': form,
-            'can_post': request.user.has_perm('post_without_moderation')
         }
         if form.is_valid():
-            post_item = form.save()
+            post_item = form.save(commit=False)
+            post_item.author = request.user
             if request.user.has_perm('post_without_moderation'):
                 post_item.published = True
             post_item.save()
             return redirect('/')
     else:
-        form = NewsPostForm()
-        context = {'post_form': form}
+        context = {
+            'post_form': NewsPostForm(),
+            'is_moderator': request.user.has_perm('post_without_moderation')
+        }
     return render(request, 'news/add_post.html', context)
 
 
@@ -58,8 +87,8 @@ def login(request):
                 username=form.cleaned_data['username'],
                 password=form.cleaned_data['password'])
             if user is not None:
-                login(user)
-                return redirect('')
+                django_login(request, user)
+                return redirect('index')
             else:
                 context = {'form': form, 'invalid': True}
     else:
@@ -70,7 +99,7 @@ def login(request):
 @login_required(login_url='/login/')
 def logout(request):
     django_logout(request)
-    return redirect('login/')
+    return redirect('login')
 
 
 def signup(request):
@@ -94,11 +123,10 @@ def signup(request):
                     [form.cleaned_data.get('email')],
                     fail_silently=False
                 )
+                print(form.cleaned_data.get('email'))
             except:
                 user.delete()
-                return HttpResponse(
-                    'Something went wrong. Check your email or contact administrator',
-                    status=400)
+                return render(request, 'news/confirmation_failed.html')
             return HttpResponse('Please confirm your email address to complete the registration')
     else:
         form = SignupForm()
@@ -114,7 +142,81 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        login(request, user)
-        return HttpResponse('Thank you for your email confirmation. Now you can log in to your account.')
+        django_login(request, user)
+        return render(request, 'news/confirmation_successfull.html')
     else:
         return HttpResponse('Activation link is invalid!')
+
+
+def notify_on_comment(current_site, post, comment_author):
+    send_mail(
+        'New comment on your post',
+        render_to_string('news/comment_notification_email.html', {
+            'post': post,
+            'username': post.author.username,
+            'domain': current_site.domain,
+            'comment_author': comment_author,
+        }),
+        'zavhorodnia.yevheniia@gmail.com',
+        [post.author.email],
+        fail_silently=False
+    )
+
+
+@login_required(login_url='/login/')
+def moderate_post(request, post_id):
+    if not request.user.has_perm('post_without_moderation'):
+        return redirect('index')
+    try:
+        post = NewsPost.objects.get(id=post_id)
+    except NewsPost.DoesNotExist:
+        return redirect('index')
+    if request.method == 'POST':
+        form = NewsPostForm(request.POST)
+        if form.is_valid():
+            post.title = form.cleaned_data['title']
+            post.text = form.cleaned_data['text']
+            post.save()
+            return redirect('waiting_for_moderation')
+    else:
+        form = NewsPostForm(instance=post)
+        return render(request, 'news/moderate_post.html', {'form': form})
+
+
+@login_required(login_url='/login/')
+def send_to_moderation(request, post_id):
+    try:
+        post = NewsPost.objects.get(id=post_id)
+        if request.user.has_perm('post_without_moderation'):
+            post.published = False
+            post.save()
+    except NewsPost.DoesNotExist:
+        pass
+    finally:
+        return redirect('index')
+
+
+@login_required(login_url='/login/')
+def publish(request, post_id):
+    try:
+        post = NewsPost.objects.get(id=post_id)
+        if request.user.has_perm('post_without_moderation'):
+            post.published = True
+            post.save()
+    except NewsPost.DoesNotExist:
+        pass
+    finally:
+        return redirect('waiting_for_moderation')
+
+
+@login_required(login_url='/login/')
+def delete_comment(request, post_id, comment_id):
+    try:
+        NewsPost.objects.get(id=post_id)
+        comment = Comment.objects.get(id=comment_id)
+        if request.user.has_perm('post_without_moderation'):
+            comment.delete()
+    except (NewsPost.DoesNotExist, Comment.DoesNotExist):
+        pass
+    finally:
+        return redirect('posts', post_id=post_id)

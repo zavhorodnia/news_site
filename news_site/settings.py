@@ -136,10 +136,7 @@ CKEDITOR_UPLOAD_PATH = "uploads/"
 
 
 # email configs
-SENDGRID_API_KEY = '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'
-
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

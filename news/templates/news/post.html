@@ -1,0 +1,37 @@
+{% extends 'news/navbar.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <br>
+    {% if is_moderator %}
+      <a href="{% url 'send_to_moderation' post.id %}" class="btn btn-outline-primary">Hide from published</a><hr>
+    {% endif %}
+    <h2>{{ post.title }}</h2>
+    <hr>
+    {{ post.text | safe }}
+    <hr>
+    <div class="row justify-content-right">
+        <div class="col-6">
+            <h4>Comments:</h4>
+            {% crispy form %}
+            {% for comment in comments %}
+                <div class="card">
+                  <div class="card-header">
+                      {{ comment.text | safe }}
+                  </div>
+                  <div class="card-body">
+                    <blockquote class="blockquote mb-0">
+                      <footer class="blockquote-footer">{{ comment.author.username }}</footer>
+                    </blockquote>
+                  {% if is_moderator %}
+                    <a href="{% url 'delete_comment' post.id comment.id %}" class="btn btn-outline-primary">Delete this comment</a>
+                  {% endif %}
+                  </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

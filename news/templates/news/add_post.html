@@ -1,14 +1,26 @@
-{% extends 'news/base.html' %}
+{% extends 'news/navbar.html' %}
 {% block title %}Add post{% endblock %}
 
+{% load crispy_forms_tags %}
 {% block content %}
     <h1>Add a new post!</h1>
+    <br>
     <form action="" method="POST">
       {% csrf_token %}
       {{ post_form.media }}
-      {{ post_form.title }}
+      {{ post_form.title | as_crispy_field }}
       <br><br>
       {{ post_form.text }}
-    <input type="submit" value="Save">
+      <br><br>
+      {% if is_moderator %}
+        <button type="submit" class="btn btn-primary mb-2">Publish</button>
+      {%  else %}
+        <button type="submit" class="btn btn-primary mb-2">Send to moderation</button>
+        <div class="alert alert-secondary" role="alert">
+          Note: your post has to pass pre-moderation in order to be published.
+          Dont worry, it usually takes a couple hours. We'll just make sure that your
+          post is well-formatted and doesn't contain inappropriate content.
+        </div>
+      {% endif %}
     </form>
 {% endblock %}

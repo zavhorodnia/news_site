@@ -1,0 +1,6 @@
+{% autoescape off %}
+Hi, {{ username }}
+Your post "{{ post.title }}" was just commented by {{ comment_author.username }}
+Go ahead and check it:
+http://{{ domain }}{% url 'posts' post.id %}
+{% endautoescape %}

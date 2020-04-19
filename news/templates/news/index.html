@@ -1,48 +1,27 @@
-{% extends 'news/base.html' %}
+{% extends 'news/navbar.html' %}
 
 {% block title %}News{% endblock %}
 
 {% block content %}
-    <ul class="list-unstyled">
-        {% for post in posts %}
-            <li class="media">
-            <div class="media-body">
-              <h4 class="mt-0 mb-1">{{ post.title }}</h4>
-              {{ post.text | safe }}
-              <hr>
-            </div>
-          </li>
-        {% empty %}
-            <div class="alert alert-secondary" role="alert">
-              <h4 class="alert-heading">Nothing new...</h4>
-              <p>Looks like there are no news by now, but better nothing than bad, right?</p>
-              <hr>
-              <p class="mb-0">By the way, you can always post something yourself</p>
-            </div>
-        {% endfor %}
-    </ul>
+    {% for post in posts %}
+    <div class="row">
+      <div>
+        <br>
+          <h4>{{ post.title }}</h4>
+          <p>{{ post.text | safe | truncatechars:256 }}</p>
+          <a href="{% url 'posts' post.id %}" class="btn btn-outline-primary">Read more</a>
+          {% if is_moderator %}
+              <a href="{% url 'send_to_moderation' post.id %}" class="btn btn-outline-primary">Hide from published</a>
+          {% endif %}
+      </div>
+      <hr>
+    </div>
+    {% empty %}
+        <div class="alert alert-secondary" role="alert">
+          <h4 class="alert-heading">Nothing new...</h4>
+          <p>Looks like there are no news by now, but better nothing than bad, right?</p>
+          <hr>
+          <p class="mb-0">By the way, you can always post something yourself</p>
+        </div>
+    {% endfor %}
 {% endblock %}
-
-{#<ul class="list-unstyled">#}
-{#  <li class="media">#}
-{#    <img src="..." class="mr-3" alt="...">#}
-{#    <div class="media-body">#}
-{#      <h5 class="mt-0 mb-1">List-based media object</h5>#}
-{#      Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.#}
-{#    </div>#}
-{#  </li>#}
-{#  <li class="media my-4">#}
-{#    <img src="..." class="mr-3" alt="...">#}
-{#    <div class="media-body">#}
-{#      <h5 class="mt-0 mb-1">List-based media object</h5>#}
-{#      Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.#}
-{#    </div>#}
-{#  </li>#}
-{#  <li class="media">#}
-{#    <img src="..." class="mr-3" alt="...">#}
-{#    <div class="media-body">#}
-{#      <h5 class="mt-0 mb-1">List-based media object</h5>#}
-{#      Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.#}
-{#    </div>#}
-{#  </li>#}
-{#</ul>#}

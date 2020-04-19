@@ -4,14 +4,13 @@ from django.contrib.auth import login as django_login, authenticate, logout as d
 from django.contrib.auth.decorators import login_required
 from .forms import SignupForm, LoginForm
 from django.contrib.sites.shortcuts import get_current_site
-from django.utils.encoding import force_bytes, force_text
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.template.loader import render_to_string
+from django.utils.encoding import force_text
+from django.utils.http import urlsafe_base64_decode
 from .tokens import account_activation_token
 from django.contrib.auth.models import User
-from django.core.mail import send_mail
 from .models import NewsPost, Comment
 from .forms import NewsPostForm, CommentPostForm
+from .tasks import notify_on_comment, send_confirmation_mail
 
 
 @login_required(login_url='/login/')
@@ -109,25 +108,11 @@ def signup(request):
             user = form.save(commit=False)
             user.is_active = False
             user.save()
-            current_site = get_current_site(request)
-            try:
-                send_mail(
-                    'Confirm your email',
-                    render_to_string('news/confirm_email.html', {
-                        'user': user,
-                        'domain': current_site.domain,
-                        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                        'token': account_activation_token.make_token(user),
-                    }),
-                    'zavhorodnia.yevheniia@gmail.com',
-                    [form.cleaned_data.get('email')],
-                    fail_silently=False
-                )
-                print(form.cleaned_data.get('email'))
-            except:
+            if send_confirmation_mail(user, get_current_site(request).domain):
+                return HttpResponse('Please confirm your email address to complete the registration')
+            else:
                 user.delete()
                 return render(request, 'news/confirmation_failed.html')
-            return HttpResponse('Please confirm your email address to complete the registration')
     else:
         form = SignupForm()
     return render(request, 'news/signup.html', {'form': form})
@@ -146,21 +131,6 @@ def activate(request, uidb64, token):
         return render(request, 'news/confirmation_successfull.html')
     else:
         return HttpResponse('Activation link is invalid!')
-
-
-def notify_on_comment(current_site, post, comment_author):
-    send_mail(
-        'New comment on your post',
-        render_to_string('news/comment_notification_email.html', {
-            'post': post,
-            'username': post.author.username,
-            'domain': current_site.domain,
-            'comment_author': comment_author,
-        }),
-        'zavhorodnia.yevheniia@gmail.com',
-        [post.author.email],
-        fail_silently=False
-    )
 
 
 @login_required(login_url='/login/')

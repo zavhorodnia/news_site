@@ -17,14 +17,14 @@ from .tasks import notify_on_comment, send_confirmation_mail
 def index(request):
     context = {
         'posts': NewsPost.objects.filter(published=True).order_by('-id'),
-        'is_moderator': request.user.has_perm('post_without_moderation')
+        'is_moderator': request.user.has_perm('news.post_without_moderation')
     }
     return render(request, 'news/index.html', context)
 
 
 @login_required(login_url='/login/')
 def waiting_for_moderation(request):
-    if not request.user.has_perm('post_without_moderation'):
+    if not request.user.has_perm('news.post_without_moderation'):
         return redirect('index')
     context = {'posts': NewsPost.objects.filter(published=False).order_by('-id'),
                'is_moderator': True}
@@ -49,7 +49,7 @@ def show_post(request, post_id):
             return redirect('index')
     context = {
         'post': post,
-        'is_moderator': request.user.has_perm('post_without_moderation'),
+        'is_moderator': request.user.has_perm('news.post_without_moderation'),
         'comments': post.comments.all().order_by('-id'),
         'form': CommentPostForm()}
     return render(request, 'news/post.html', context)
@@ -65,14 +65,14 @@ def add_post(request):
         if form.is_valid():
             post_item = form.save(commit=False)
             post_item.author = request.user
-            if request.user.has_perm('post_without_moderation'):
+            if request.user.has_perm('news.post_without_moderation'):
                 post_item.published = True
             post_item.save()
             return redirect('/')
     else:
         context = {
             'post_form': NewsPostForm(),
-            'is_moderator': request.user.has_perm('post_without_moderation')
+            'is_moderator': request.user.has_perm('news.post_without_moderation')
         }
     return render(request, 'news/add_post.html', context)
 
@@ -135,7 +135,7 @@ def activate(request, uidb64, token):
 
 @login_required(login_url='/login/')
 def moderate_post(request, post_id):
-    if not request.user.has_perm('post_without_moderation'):
+    if not request.user.has_perm('news.post_without_moderation'):
         return redirect('index')
     try:
         post = NewsPost.objects.get(id=post_id)
@@ -157,7 +157,7 @@ def moderate_post(request, post_id):
 def send_to_moderation(request, post_id):
     try:
         post = NewsPost.objects.get(id=post_id)
-        if request.user.has_perm('post_without_moderation'):
+        if request.user.has_perm('news.post_without_moderation'):
             post.published = False
             post.save()
     except NewsPost.DoesNotExist:
@@ -170,7 +170,7 @@ def send_to_moderation(request, post_id):
 def publish(request, post_id):
     try:
         post = NewsPost.objects.get(id=post_id)
-        if request.user.has_perm('post_without_moderation'):
+        if request.user.has_perm('news.post_without_moderation'):
             post.published = True
             post.save()
     except NewsPost.DoesNotExist:
@@ -184,7 +184,7 @@ def delete_comment(request, post_id, comment_id):
     try:
         NewsPost.objects.get(id=post_id)
         comment = Comment.objects.get(id=comment_id)
-        if request.user.has_perm('post_without_moderation'):
+        if request.user.has_perm('news.post_without_moderation'):
             comment.delete()
     except (NewsPost.DoesNotExist, Comment.DoesNotExist):
         pass

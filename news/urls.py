@@ -13,5 +13,5 @@ urlpatterns = [
     path('posts/<int:post_id>/moderate', views.moderate_post, name='moderate'),
     path('posts/<int:post_id>/send_to_moderation', views.send_to_moderation, name='send_to_moderation'),
     path('posts/<int:post_id>/publish', views.publish, name='publish'),
-    path('/posts/<int:post_id>/comments/<int:comment_id>', views.delete_comment, name='delete_comment')
+    path('posts/<int:post_id>/comments/<int:comment_id>', views.delete_comment, name='delete_comment')
 ]
